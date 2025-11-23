@@ -32,6 +32,9 @@ Add these secrets to your GitHub repository (Settings > Secrets and variables > 
    - Create Token > Edit Cloudflare Workers template
    - Grant "Edit" permissions for Workers
 
+#### Database Secrets
+1. **DATABASE_URL**: Connection string for your production database (e.g., from Neon)
+
 ### Environment Variables
 
 Configure these in your deployment platforms:
@@ -87,9 +90,21 @@ cd cloudflare-worker
 wrangler deploy
 ```
 
-## Database Setup
+## Database Management
 
-Run the schema from `backend/database/schema.sql` on your Neon database:
+### Migrations
+Database changes are managed via versioned SQL files in `backend/database/migrations/`.
+
+**To apply migrations locally:**
 ```bash
-psql $DATABASE_URL -f backend/database/schema.sql
+cd backend/migrate
+go run main.go
 ```
+
+**To create a new migration:**
+1. Create a new SQL file in `backend/database/migrations/` (e.g., `003_add_feature.sql`).
+2. Commit and push to `main`.
+3. The deployment pipeline will automatically apply pending migrations.
+
+**Initial Setup:**
+If setting up a fresh database, the migration tool will automatically apply the schema from scratch (starting with `001_init.sql`).
