@@ -137,33 +137,118 @@ func pollAndSave(ctx context.Context, db *pgxpool.Pool) error {
 		return fmt.Errorf("failed to decode JSON: %w", err)
 	}
 
-	log.Printf("Fetched %d station statuses. Inserting...", len(gbfs.Data.Stations))
-
 	// 3. Upload to R2
 	if err := uploadToR2(ctx, bodyBytes, gbfs.LastUpdated); err != nil {
 		log.Printf("Warning: Failed to upload to R2: %v", err)
 	}
 
-	// 4. Batch insert into TimescaleDB
+	// 4. Fetch latest status from DB for deduplication (Optimized)
+	latestStatuses, err := fetchLatestStationStatuses(ctx, db)
+	if err != nil {
+		log.Printf("Warning: Failed to fetch latest statuses: %v. Proceeding with full insert.", err)
+		latestStatuses = make(map[string]StationStatus)
+	}
+
+	// 5. Batch insert into TimescaleDB (only changed records) AND Upsert current status
 	timestamp := time.Unix(gbfs.LastUpdated, 0)
-	batch := &pgx.Batch{}
+	historyBatch := &pgx.Batch{}
+	currentBatch := &pgx.Batch{}
+	insertCount := 0
 
 	for _, s := range gbfs.Data.Stations {
-		batch.Queue(`
+		// Always upsert to current_station_status to keep it fresh
+		currentBatch.Queue(`
+			INSERT INTO current_station_status (station_id, num_bikes_available, num_ebikes_available, num_docks_available, is_installed, is_renting, is_returning, last_updated)
+			VALUES ($1, $2, $3, $4, $5 = 1, $6 = 1, $7 = 1, $8)
+			ON CONFLICT (station_id) DO UPDATE SET
+				num_bikes_available = EXCLUDED.num_bikes_available,
+				num_ebikes_available = EXCLUDED.num_ebikes_available,
+				num_docks_available = EXCLUDED.num_docks_available,
+				is_installed = EXCLUDED.is_installed,
+				is_renting = EXCLUDED.is_renting,
+				is_returning = EXCLUDED.is_returning,
+				last_updated = EXCLUDED.last_updated
+		`, s.StationID, s.NumBikesAvailable, s.NumEbikesAvailable, s.NumDocksAvailable, s.IsInstalled, s.IsRenting, s.IsReturning, timestamp)
+
+		// Check if status has changed for history
+		if lastStatus, ok := latestStatuses[s.StationID]; ok {
+			if lastStatus.NumBikesAvailable == s.NumBikesAvailable &&
+				lastStatus.NumEbikesAvailable == s.NumEbikesAvailable &&
+				lastStatus.NumDocksAvailable == s.NumDocksAvailable &&
+				lastStatus.IsInstalled == s.IsInstalled &&
+				lastStatus.IsRenting == s.IsRenting &&
+				lastStatus.IsReturning == s.IsReturning {
+				continue // Skip history insert if nothing changed
+			}
+		}
+
+		historyBatch.Queue(`
 			INSERT INTO station_status (time, station_id, num_bikes_available, num_ebikes_available, num_docks_available, is_installed, is_renting, is_returning)
 			VALUES ($1, $2, $3, $4, $5, $6 = 1, $7 = 1, $8 = 1)
 		`, timestamp, s.StationID, s.NumBikesAvailable, s.NumEbikesAvailable, s.NumDocksAvailable, s.IsInstalled, s.IsRenting, s.IsReturning)
+		insertCount++
 	}
 
-	br := db.SendBatch(ctx, batch)
-	defer br.Close()
+	// Execute Current Status Upsert
+	brCurrent := db.SendBatch(ctx, currentBatch)
+	if _, err := brCurrent.Exec(); err != nil {
+		log.Printf("Error upserting current status: %v", err)
+		// Don't fail the whole run, history is more important
+	}
+	brCurrent.Close()
 
-	if _, err := br.Exec(); err != nil {
-		return fmt.Errorf("failed to execute batch: %w", err)
+	// Execute History Insert
+	if insertCount > 0 {
+		log.Printf("Inserting %d changed station statuses...", insertCount)
+		brHistory := db.SendBatch(ctx, historyBatch)
+		defer brHistory.Close()
+
+		if _, err := brHistory.Exec(); err != nil {
+			return fmt.Errorf("failed to execute history batch: %w", err)
+		}
+		log.Println("Successfully inserted history batch.")
+	} else {
+		log.Println("No station status changes detected. Skipping history insert.")
 	}
 
-	log.Println("Successfully inserted batch.")
 	return nil
+}
+
+func fetchLatestStationStatuses(ctx context.Context, db *pgxpool.Pool) (map[string]StationStatus, error) {
+	// Fetch the most recent status for each station from the optimized table
+	rows, err := db.Query(ctx, `
+		SELECT 
+			station_id, 
+			num_bikes_available, 
+			num_ebikes_available, 
+			num_docks_available, 
+			CASE WHEN is_installed THEN 1 ELSE 0 END, 
+			CASE WHEN is_renting THEN 1 ELSE 0 END, 
+			CASE WHEN is_returning THEN 1 ELSE 0 END
+		FROM current_station_status
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	statuses := make(map[string]StationStatus)
+	for rows.Next() {
+		var s StationStatus
+		if err := rows.Scan(
+			&s.StationID,
+			&s.NumBikesAvailable,
+			&s.NumEbikesAvailable,
+			&s.NumDocksAvailable,
+			&s.IsInstalled,
+			&s.IsRenting,
+			&s.IsReturning,
+		); err != nil {
+			return nil, err
+		}
+		statuses[s.StationID] = s
+	}
+	return statuses, nil
 }
 
 func fetchAndUpsertStations(ctx context.Context, db *pgxpool.Pool) error {
