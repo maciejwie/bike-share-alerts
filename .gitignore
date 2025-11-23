@@ -20,3 +20,4 @@ backend/collector/collector
 # Environment
 **/.env
 .vercel
+.vscode
