@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import List, Optional
-from auth import get_current_user
-from db import get_db
+from ..auth import get_current_user
+from ..db import get_db
 
 router = APIRouter()
 

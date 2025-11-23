@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import routes, stations, monitor, admin
+from .routers import routes, stations, monitor, admin
 
 app = FastAPI()
 

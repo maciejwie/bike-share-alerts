@@ -12,6 +12,9 @@ dependencies = [
     "httpx>=0.28.1",
 ]
 
+[project.scripts]
+app = "index:app"
+
 [tool.uv]
 dev-dependencies = [
     "pytest>=9.0.1",
@@ -19,5 +22,5 @@ dev-dependencies = [
 ]
 
 [tool.pytest.ini_options]
-pythonpath = "."
+pythonpath = ["..", "."]
 testpaths = ["tests"]
