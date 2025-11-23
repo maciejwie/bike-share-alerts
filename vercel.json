@@ -1,0 +1,28 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "backend/api/*.py",
+            "use": "@vercel/python"
+        },
+        {
+            "src": "backend/collector/main.go",
+            "use": "@vercel/go"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/api/stations",
+            "dest": "/backend/api/stations.py"
+        },
+        {
+            "src": "/api/hello",
+            "dest": "/backend/api/hello.py"
+        },
+        {
+            "src": "/api/collector",
+            "dest": "/backend/collector/main.go"
+        }
+    ],
+    "ignoreCommand": "git diff --quiet HEAD^ HEAD ./"
+}
