@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-app = "index:app"
+app = "api.index:app"
 
 [tool.uv]
 dev-dependencies = [
