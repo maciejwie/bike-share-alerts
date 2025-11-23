@@ -52,26 +52,31 @@ Configure these in your deployment platforms:
 
 ## Local Development
 
+### Environment Variables
+```bash
+cp backend/.env.example backend/.env
+# Edit backend/.env with your credentials
+```
+
+### Install Dependencies
+```bash
+make install
+```
+
 ### Backend API
 ```bash
-cd backend/api
-uv venv
-source .venv/bin/activate
-uv pip install -r requirements.txt
-python routes.py
+# Run locally
+make dev-api
 ```
 
 ### Collector (Local Testing)
 ```bash
-cd backend/collector
-cp ../.env.example ../.env
-# Edit ../.env with your credentials
-go run main.go
+make dev-collector
 ```
 
 ### Cloudflare Worker
 ```bash
-cd cloudflare-worker
+make dev-worker
 wrangler dev
 ```
 
@@ -81,13 +86,12 @@ If you need to deploy manually:
 
 ### Vercel
 ```bash
-vercel --prod
+make deploy-api
 ```
 
 ### Cloudflare Worker
 ```bash
-cd cloudflare-worker
-wrangler deploy
+make deploy-worker
 ```
 
 ## Database Management
@@ -97,8 +101,7 @@ Database changes are managed via versioned SQL files in `backend/database/migrat
 
 **To apply migrations locally:**
 ```bash
-cd backend/migrate
-go run main.go
+make migrate
 ```
 
 **To create a new migration:**
