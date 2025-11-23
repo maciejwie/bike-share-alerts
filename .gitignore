@@ -15,7 +15,6 @@ wheels/
 backend/api/uv.lock
 
 # Go
-backend/collector/collector
 
 # Environment
 **/.env
