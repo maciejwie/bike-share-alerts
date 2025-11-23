@@ -5,7 +5,7 @@ export default {
 
     async scheduled(event, env, ctx) {
         try {
-            const response = await fetch('https://bike-share-alerts.vercel.app/api/collector', {
+            const response = await fetch('https://bike-share-alerts-collector.vercel.app/api/collector', {
                 headers: {
                     'Authorization': `Bearer ${env.CRON_SECRET}`
                 }
