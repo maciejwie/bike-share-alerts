@@ -2,7 +2,7 @@
     "version": 2,
     "builds": [
         {
-            "src": "backend/api/*.py",
+            "src": "backend/api/index.py",
             "use": "@vercel/python"
         },
         {
@@ -12,17 +12,12 @@
     ],
     "routes": [
         {
-            "src": "/api/stations",
-            "dest": "/backend/api/stations.py"
+            "src": "/api/(.*)",
+            "dest": "/backend/api/index.py"
         },
         {
-            "src": "/api/hello",
-            "dest": "/backend/api/hello.py"
-        },
-        {
-            "src": "/api/collector",
+            "src": "/collector",
             "dest": "/backend/collector/main.go"
         }
-    ],
-    "ignoreCommand": "git diff --quiet HEAD^ HEAD ./"
+    ]
 }

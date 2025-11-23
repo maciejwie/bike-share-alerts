@@ -31,6 +31,10 @@ Add these secrets to your GitHub repository (Settings > Secrets and variables > 
    - Go to Cloudflare Dashboard > My Profile > API Tokens
    - Create Token > Edit Cloudflare Workers template
    - Grant "Edit" permissions for Workers
+2. **CLOUDFLARE_ACCOUNT_ID**: 
+   - Go to Cloudflare Dashboard > Account Home
+   - Select the menu button next to your account name
+   - From the list that appears, select `Copy Account ID`
 
 #### Database Secrets
 1. **DATABASE_URL**: Connection string for your production database (e.g., from Neon)
