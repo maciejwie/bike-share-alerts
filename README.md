@@ -40,12 +40,14 @@ Add these secrets to your GitHub repository (Settings > Secrets and variables > 
 Configure these in your deployment platforms:
 
 #### Vercel (Dashboard > Settings > Environment Variables)
+ **Note**: Make sure that these are configured as secrets, not as plain variables.
 - `DATABASE_URL`: PostgreSQL connection string from Neon
 - `R2_ACCOUNT_ID`: Cloudflare account ID
 - `R2_ACCESS_KEY_ID`: R2 access key
 - `R2_SECRET_ACCESS_KEY`: R2 secret key
 - `R2_BUCKET_NAME`: R2 bucket name
 - `CRON_SECRET`: Shared secret for collector authentication
+- `ADMIN_API_KEY`: Shared secret for admin API authentication
 
 #### Cloudflare Worker (Dashboard > Workers & Pages > collector-cron > Settings > Variables)
 - `CRON_SECRET`: Same value as Vercel (encrypted variable)
