@@ -16,10 +16,10 @@ def check_route_status(
 ):
     cur = conn.cursor()
 
-    # Get route details
+    # Get route details (verify ownership)
     cur.execute(
-        "SELECT start_station_id, end_station_id FROM routes WHERE route_id = %s",
-        (req.route_id,),
+        "SELECT start_station_id, end_station_id FROM routes WHERE route_id = %s AND user_email = %s",
+        (req.route_id, user_email),
     )
     route = cur.fetchone()
 
