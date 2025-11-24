@@ -17,13 +17,13 @@ CREATE TABLE users (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Step 3: Recreate routes table with user_email foreign key and INTEGER station_id
+-- Step 3: Recreate routes table with user_email foreign key and TEXT station_id
 CREATE TABLE routes (
     route_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_email TEXT NOT NULL REFERENCES users(user_email) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    start_station_id INTEGER REFERENCES stations(station_id),
-    end_station_id INTEGER REFERENCES stations(station_id),
+    start_station_id TEXT REFERENCES stations(station_id),
+    end_station_id TEXT REFERENCES stations(station_id),
     target_arrival_time TIME,
     alert_lead_time_minutes INTEGER DEFAULT 15,
     days_of_week INTEGER[],
