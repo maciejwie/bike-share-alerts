@@ -12,7 +12,7 @@ class MonitorRequest(BaseModel):
 
 @router.post("/monitor")
 def check_route_status(
-    req: MonitorRequest, user_id: str = Depends(get_current_user), conn=Depends(get_db)
+    req: MonitorRequest, user_email: str = Depends(get_current_user), conn=Depends(get_db)
 ):
     cur = conn.cursor()
 

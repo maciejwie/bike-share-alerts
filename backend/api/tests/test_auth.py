@@ -19,8 +19,9 @@ def test_valid_api_key_updates_last_used(client):
     mock_cursor = MagicMock()
     mock_conn.cursor.return_value = mock_cursor
 
-    # Mock the SELECT query to return a valid user
-    mock_cursor.fetchone.return_value = ["test_user_id"]
+    # Mock the SELECT query to return a valid user (email)
+    test_user_email = "test@example.com"
+    mock_cursor.fetchone.return_value = [test_user_email]
 
     # Mock fetchall for the routes query
     mock_cursor.fetchall.return_value = []
@@ -38,7 +39,7 @@ def test_valid_api_key_updates_last_used(client):
 
     # Verify SELECT was called in auth
     select_call = mock_cursor.execute.call_args_list[0]
-    assert "SELECT user_id FROM api_keys" in select_call[0][0]
+    assert "SELECT user_email FROM api_keys" in select_call[0][0]
     assert key_hash in select_call[0][1]
 
     # Verify UPDATE was called in auth (this would fail with the bug)

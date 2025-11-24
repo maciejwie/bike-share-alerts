@@ -10,9 +10,9 @@ security = HTTPBearer()
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security), conn=Depends(get_db)
-):
+) -> str:
     """
-    Validates the API key and returns the user_id.
+    Validates the API key and returns the user_email.
     """
     token = credentials.credentials
 
@@ -20,7 +20,7 @@ def get_current_user(
     token_hash = hashlib.sha256(token.encode()).hexdigest()
 
     cur = conn.cursor()
-    cur.execute("SELECT user_id FROM api_keys WHERE key_value = %s", (token_hash,))
+    cur.execute("SELECT user_email FROM api_keys WHERE key_value = %s", (token_hash,))
     row = cur.fetchone()
 
     if not row:
@@ -31,7 +31,7 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user_id = row[0]
+    user_email = row[0]
 
     # Update last_used_at timestamp
     cur.execute(
@@ -40,7 +40,7 @@ def get_current_user(
     conn.commit()
     cur.close()
 
-    return user_id
+    return user_email
 
 
 def get_admin_user(credentials: HTTPAuthorizationCredentials = Depends(security)):

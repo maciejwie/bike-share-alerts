@@ -27,11 +27,11 @@ class Route(RouteBase):
 
 
 @router.get("/routes")
-def get_routes(user_id: str = Depends(get_current_user), conn=Depends(get_db)):
+def get_routes(user_email: str = Depends(get_current_user), conn=Depends(get_db)):
     cur = conn.cursor()
     cur.execute(
-        "SELECT route_id, name, start_station_id, end_station_id, target_arrival_time, alert_lead_time_minutes, days_of_week, is_active FROM routes WHERE user_id = %s",
-        (user_id,),
+        "SELECT route_id, name, start_station_id, end_station_id, target_arrival_time, alert_lead_time_minutes, days_of_week, is_active FROM routes WHERE user_email = %s",
+        (user_email,),
     )
     rows = cur.fetchall()
     cur.close()
@@ -55,17 +55,17 @@ def get_routes(user_id: str = Depends(get_current_user), conn=Depends(get_db)):
 
 @router.post("/routes", status_code=201)
 def create_route(
-    route: RouteCreate, user_id: str = Depends(get_current_user), conn=Depends(get_db)
+    route: RouteCreate, user_email: str = Depends(get_current_user), conn=Depends(get_db)
 ):
     cur = conn.cursor()
     cur.execute(
         """
-        INSERT INTO routes (user_id, name, start_station_id, end_station_id, target_arrival_time, alert_lead_time_minutes, days_of_week)
+        INSERT INTO routes (user_email, name, start_station_id, end_station_id, target_arrival_time, alert_lead_time_minutes, days_of_week)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
         RETURNING route_id
     """,
         (
-            user_id,
+            user_email,
             route.name,
             route.start_station_id,
             route.end_station_id,

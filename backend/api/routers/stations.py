@@ -6,7 +6,7 @@ router = APIRouter()
 
 
 @router.get("/stations")
-def get_stations(user_id: str = Depends(get_current_user), conn=Depends(get_db)):
+def get_stations(user_email: str = Depends(get_current_user), conn=Depends(get_db)):
     cur = conn.cursor()
 
     query = """

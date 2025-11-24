@@ -22,7 +22,8 @@ def mock_db():
 
 @pytest.fixture
 def mock_auth():
-    app.dependency_overrides[get_current_user] = lambda: "test_user_id"
+    test_user_email = "test@example.com"
+    app.dependency_overrides[get_current_user] = lambda: test_user_email
     yield
     app.dependency_overrides.pop(get_current_user, None)
 
