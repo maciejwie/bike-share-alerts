@@ -22,9 +22,9 @@ def get_current_user(
     cur = conn.cursor()
     cur.execute("SELECT user_id FROM api_keys WHERE key_value = %s", (token_hash,))
     row = cur.fetchone()
-    cur.close()
 
     if not row:
+        cur.close()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid API Key",
