@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
-from api.index import app
-from api.auth import get_current_user, get_admin_user
+from index import app
+from auth import get_current_user, get_admin_user
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def mock_db():
     mock_cursor = MagicMock()
     mock_conn.cursor.return_value = mock_cursor
 
-    with patch("api.db.get_db_connection", return_value=mock_conn):
+    with patch("db.get_db_connection", return_value=mock_conn):
         yield mock_cursor
 
 

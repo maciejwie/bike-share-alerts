@@ -3,8 +3,8 @@ from pydantic import BaseModel
 from typing import Optional
 import uuid
 import hashlib
-from api.auth import get_admin_user
-from api.db import get_db
+from auth import get_admin_user
+from db import get_db
 
 router = APIRouter(
     prefix="/admin", tags=["admin"], dependencies=[Depends(get_admin_user)]

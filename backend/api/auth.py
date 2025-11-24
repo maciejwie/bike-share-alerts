@@ -3,7 +3,7 @@ import hashlib
 import secrets
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from api.db import get_db
+from db import get_db
 
 security = HTTPBearer()
 
