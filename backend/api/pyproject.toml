@@ -19,8 +19,36 @@ app = "index:app"
 dev = [
     "pytest>=9.0.1",
     "ruff>=0.14.6",
+    "pre-commit>=4.0.0",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "UP",     # pyupgrade - automatically detects deprecated Python patterns
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "RUF",    # Ruff-specific rules
+    "FURB",   # refurb - modernization rules
+]
+
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # FastAPI Depends() in defaults is the correct pattern
+]
+
+[tool.ruff.lint.pyupgrade]
+# Keep runtime typing for Python 3.9+ features
+keep-runtime-typing = false

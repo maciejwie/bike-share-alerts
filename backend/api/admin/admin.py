@@ -2,12 +2,13 @@
 """
 Admin CLI for managing bike-share-alerts API resources
 """
+
+import argparse
 import os
 import sys
-import argparse
+
 import httpx
 from dotenv import load_dotenv
-from typing import Optional
 
 # Load environment variables
 load_dotenv()
@@ -18,12 +19,9 @@ class AdminClient:
 
     def __init__(self, api_url: str, admin_key: str):
         self.api_url = api_url
-        self.headers = {
-            "Authorization": f"Bearer {admin_key}",
-            "Content-Type": "application/json"
-        }
+        self.headers = {"Authorization": f"Bearer {admin_key}", "Content-Type": "application/json"}
 
-    def _request(self, method: str, endpoint: str, json_data: Optional[dict] = None):
+    def _request(self, method: str, endpoint: str, json_data: dict | None = None):
         """Make an HTTP request to the admin API"""
         try:
             response = httpx.request(
@@ -31,7 +29,7 @@ class AdminClient:
                 url=f"{self.api_url}{endpoint}",
                 json=json_data,
                 headers=self.headers,
-                timeout=10.0
+                timeout=10.0,
             )
             response.raise_for_status()
 
@@ -51,11 +49,11 @@ class AdminClient:
     # User commands
     def create_user(self, email: str, firstname: str, lastname: str):
         """Create or get a user"""
-        data = self._request("POST", "/admin/users", {
-            "user_email": email,
-            "user_firstname": firstname,
-            "user_lastname": lastname
-        })
+        data = self._request(
+            "POST",
+            "/admin/users",
+            {"user_email": email, "user_firstname": firstname, "user_lastname": lastname},
+        )
 
         if data.get("existed"):
             print(f"✓ Found existing user: {data['user_email']}")
@@ -76,7 +74,9 @@ class AdminClient:
         print(f"\n{'Email':<40} {'First Name':<15} {'Last Name':<15} {'Created':<20}")
         print("-" * 95)
         for user in users:
-            print(f"{user['user_email']:<40} {user.get('user_firstname', 'N/A'):<15} {user.get('user_lastname', 'N/A'):<15} {user.get('created_at', 'N/A'):<20}")
+            print(
+                f"{user['user_email']:<40} {user.get('user_firstname', 'N/A'):<15} {user.get('user_lastname', 'N/A'):<15} {user.get('created_at', 'N/A'):<20}"
+            )
 
     def get_user(self, email: str):
         """Get user details by email"""
@@ -97,16 +97,13 @@ class AdminClient:
     # Key commands
     def create_key(self, email: str, label: str):
         """Create or get an API key"""
-        data = self._request("POST", "/admin/keys", {
-            "user_email": email,
-            "label": label
-        })
+        data = self._request("POST", "/admin/keys", {"user_email": email, "label": label})
 
         if data.get("existed"):
             print(f"✓ Key already exists with ID: {data['key_id']}")
             print(f"\n{data.get('message', '')}")
             print("\nTo regenerate the key, use:")
-            print(f"  uv run python admin/admin.py keys roll {email} \"{label}\"")
+            print(f'  uv run python admin/admin.py keys roll {email} "{label}"')
         else:
             api_key = data["key"]
             print("\n" + "=" * 70)
@@ -139,15 +136,12 @@ curl {self.api_url}/routes \\
         print(f"\n{'Key ID':<40} {'User Email':<30} {'Label':<25} {'Last Used':<20}")
         print("-" * 120)
         for key in keys:
-            last_used = key.get('last_used_at', 'Never')
+            last_used = key.get("last_used_at", "Never")
             print(f"{key['key_id']:<40} {key['user_email']:<30} {key['label']:<25} {last_used:<20}")
 
     def roll_key(self, email: str, label: str):
         """Regenerate an API key"""
-        data = self._request("POST", "/admin/keys/roll", {
-            "user_email": email,
-            "key_label": label
-        })
+        data = self._request("POST", "/admin/keys/roll", {"user_email": email, "key_label": label})
 
         api_key = data["key"]
         print("\n" + "=" * 70)
@@ -168,17 +162,10 @@ curl {self.api_url}/routes \\
     def list_routes(self, user_key: str):
         """List routes for a user (requires user's API key)"""
         # Use user's key instead of admin key
-        headers = {
-            "Authorization": f"Bearer {user_key}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"Bearer {user_key}", "Content-Type": "application/json"}
 
         try:
-            response = httpx.get(
-                f"{self.api_url}/routes",
-                headers=headers,
-                timeout=10.0
-            )
+            response = httpx.get(f"{self.api_url}/routes", headers=headers, timeout=10.0)
             response.raise_for_status()
             data = response.json()
         except httpx.HTTPStatusError as e:
@@ -198,15 +185,17 @@ curl {self.api_url}/routes \\
         print(f"\n{'ID':<40} {'Name':<25} {'Start→End':<20} {'Active':<8}")
         print("-" * 95)
         for route in routes:
-            active = "Yes" if route.get('active') else "No"
-            stations = f"{route.get('start_station_id', 'N/A')}→{route.get('end_station_id', 'N/A')}"
+            active = "Yes" if route.get("active") else "No"
+            stations = (
+                f"{route.get('start_station_id', 'N/A')}→{route.get('end_station_id', 'N/A')}"
+            )
             print(f"{route['id']:<40} {route['name']:<25} {stations:<20} {active:<8}")
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="Admin CLI for bike-share-alerts API",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")

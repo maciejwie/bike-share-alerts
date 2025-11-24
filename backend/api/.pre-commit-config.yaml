@@ -1,0 +1,23 @@
+# See https://pre-commit.com for more information
+repos:
+  # Ruff - Fast Python linter and formatter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.6
+    hooks:
+      # Run the linter
+      - id: ruff-check
+        exclude: ^\.venv/
+      # Run the formatter
+      - id: ruff-format
+        exclude: ^\.venv/
+
+  # Run pytest
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: bash -c 'cd backend/api && uv run pytest'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+
 from auth import get_current_user
 from db import get_db
 
@@ -37,7 +38,7 @@ def check_route_status(
         return {
             "alert": True,
             "message": "Route must have both start and end stations configured",
-            "data": {}
+            "data": {},
         }
 
     # Collect all station IDs to check
@@ -74,7 +75,9 @@ def check_route_status(
                 message.append("No status data for primary start station")
             elif start_status["bikes"] < bikes_threshold:
                 alert = True
-                message.append(f"Primary start station low on bikes ({start_status['bikes']} avail, need {bikes_threshold})")
+                message.append(
+                    f"Primary start station low on bikes ({start_status['bikes']} avail, need {bikes_threshold})"
+                )
 
         # Found a station with sufficient bikes
         if start_status and start_status["bikes"] >= bikes_threshold:
@@ -85,11 +88,12 @@ def check_route_status(
             break
 
     # If we never found a good station, alert
-    if not found_good_start:
-        if len(start_ids) > 1:
-            best_bikes = max((status_map.get(sid, {}).get("bikes", 0) for sid in start_ids), default=0)
-            alert = True
-            message.append(f"All start stations low on bikes (best: {best_bikes} avail, need {bikes_threshold})")
+    if not found_good_start and len(start_ids) > 1:
+        best_bikes = max((status_map.get(sid, {}).get("bikes", 0) for sid in start_ids), default=0)
+        alert = True
+        message.append(
+            f"All start stations low on bikes (best: {best_bikes} avail, need {bikes_threshold})"
+        )
 
     # Check end stations (in preference order)
     found_good_end = False
@@ -103,7 +107,9 @@ def check_route_status(
                 message.append("No status data for primary end station")
             elif end_status["docks"] < docks_threshold:
                 alert = True
-                message.append(f"Primary end station low on docks ({end_status['docks']} avail, need {docks_threshold})")
+                message.append(
+                    f"Primary end station low on docks ({end_status['docks']} avail, need {docks_threshold})"
+                )
 
         # Found a station with sufficient docks
         if end_status and end_status["docks"] >= docks_threshold:
@@ -114,11 +120,12 @@ def check_route_status(
             break
 
     # If we never found a good station, alert
-    if not found_good_end:
-        if len(end_ids) > 1:
-            best_docks = max((status_map.get(eid, {}).get("docks", 0) for eid in end_ids), default=0)
-            alert = True
-            message.append(f"All end stations low on docks (best: {best_docks} avail, need {docks_threshold})")
+    if not found_good_end and len(end_ids) > 1:
+        best_docks = max((status_map.get(eid, {}).get("docks", 0) for eid in end_ids), default=0)
+        alert = True
+        message.append(
+            f"All end stations low on docks (best: {best_docks} avail, need {docks_threshold})"
+        )
 
     return {
         "alert": alert,

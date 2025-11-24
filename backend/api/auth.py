@@ -1,8 +1,10 @@
-import os
 import hashlib
+import os
 import secrets
+
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
 from db import get_db
 
 security = HTTPBearer()
@@ -34,9 +36,7 @@ def get_current_user(
     user_email = row[0]
 
     # Update last_used_at timestamp
-    cur.execute(
-        "UPDATE api_keys SET last_used_at = NOW() WHERE key_value = %s", (token_hash,)
-    )
+    cur.execute("UPDATE api_keys SET last_used_at = NOW() WHERE key_value = %s", (token_hash,))
     conn.commit()
     cur.close()
 

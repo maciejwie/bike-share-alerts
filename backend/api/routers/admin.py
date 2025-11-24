@@ -1,13 +1,13 @@
+import hashlib
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-import uuid
-import hashlib
+
 from auth import get_admin_user
 from db import get_db
 
-router = APIRouter(
-    prefix="/admin", tags=["admin"], dependencies=[Depends(get_admin_user)]
-)
+router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(get_admin_user)])
 
 
 class CreateUserRequest(BaseModel):
@@ -86,7 +86,7 @@ def get_user_by_email(email: str, conn=Depends(get_db)):
     cur = conn.cursor()
     cur.execute(
         "SELECT user_email, user_firstname, user_lastname, device_token, created_at FROM users WHERE user_email = %s",
-        (email,)
+        (email,),
     )
     row = cur.fetchone()
     cur.close()
@@ -133,7 +133,7 @@ def create_or_get_api_key(req: CreateKeyRequest, conn=Depends(get_db)):
         return {
             "key_id": existing[0],
             "existed": True,
-            "message": "Key already exists. Use POST /admin/keys/roll to regenerate."
+            "message": "Key already exists. Use POST /admin/keys/roll to regenerate.",
         }
 
     # Generate a random key
@@ -180,7 +180,7 @@ def roll_api_key(req: RollKeyRequest, conn=Depends(get_db)):
         cur.close()
         raise HTTPException(
             status_code=404,
-            detail=f"Key not found for user '{req.user_email}' with label '{req.key_label}'"
+            detail=f"Key not found for user '{req.user_email}' with label '{req.key_label}'",
         )
 
     key_id = key_row[0]

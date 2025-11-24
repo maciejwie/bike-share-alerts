@@ -13,7 +13,7 @@ test: ## Run tests
 	uv run pytest
 
 lint: ## Run linting
-	uv run ruff check .
+	uv run ruff check . --fix
 
 format: ## Format code
 	uv run ruff format .

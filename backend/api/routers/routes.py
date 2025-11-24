@@ -1,7 +1,8 @@
+from datetime import time
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, field_validator
-from typing import List, Optional
-from datetime import time
+
 from auth import get_current_user
 from db import get_db
 
@@ -10,30 +11,30 @@ router = APIRouter()
 
 class RouteBase(BaseModel):
     name: str
-    start_station_ids: List[int]
-    end_station_ids: List[int]
-    target_departure_time: Optional[time] = None
+    start_station_ids: list[int]
+    end_station_ids: list[int]
+    target_departure_time: time | None = None
     alert_lead_time_minutes: int = 15
-    days_of_week: List[int] = []
+    days_of_week: list[int] = []
     bikes_threshold: int = 2
     docks_threshold: int = 2
 
 
 class RouteCreate(RouteBase):
-    @field_validator('start_station_ids', 'end_station_ids')
+    @field_validator("start_station_ids", "end_station_ids")
     @classmethod
     def validate_station_ids(cls, v):
         if not v or len(v) == 0:
-            raise ValueError('Must provide at least one station ID')
+            raise ValueError("Must provide at least one station ID")
         if len(v) != len(set(v)):
-            raise ValueError('Station IDs must be unique')
+            raise ValueError("Station IDs must be unique")
         return v
 
-    @field_validator('days_of_week')
+    @field_validator("days_of_week")
     @classmethod
     def validate_days(cls, v):
         if v and any(d < 0 or d > 6 for d in v):
-            raise ValueError('Days of week must be 0-6 (Sunday=0)')
+            raise ValueError("Days of week must be 0-6 (Sunday=0)")
         return v
 
 
@@ -79,8 +80,7 @@ def create_route(
 
     # Check if a route with the same name already exists for this user
     cur.execute(
-        "SELECT route_id FROM routes WHERE user_email = %s AND name = %s",
-        (user_email, route.name)
+        "SELECT route_id FROM routes WHERE user_email = %s AND name = %s", (user_email, route.name)
     )
     existing = cur.fetchone()
 
@@ -116,20 +116,18 @@ def create_route(
 
 
 @router.delete("/routes/{route_id}", status_code=204)
-def delete_route(
-    route_id: str, user_email: str = Depends(get_current_user), conn=Depends(get_db)
-):
+def delete_route(route_id: str, user_email: str = Depends(get_current_user), conn=Depends(get_db)):
     """Delete a route (only if owned by the authenticated user)"""
     cur = conn.cursor()
     cur.execute(
-        "DELETE FROM routes WHERE route_id = %s AND user_email = %s",
-        (route_id, user_email)
+        "DELETE FROM routes WHERE route_id = %s AND user_email = %s", (route_id, user_email)
     )
 
     if cur.rowcount == 0:
         cur.close()
         conn.rollback()
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Route not found")
 
     conn.commit()

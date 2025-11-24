@@ -1,7 +1,9 @@
 import hashlib
 from unittest.mock import MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
+
 from index import app
 
 
@@ -27,10 +29,7 @@ def test_valid_api_key_updates_last_used(client):
     mock_cursor.fetchall.return_value = []
 
     with patch("db.get_db_connection", return_value=mock_conn):
-        response = client.get(
-            "/routes",
-            headers={"Authorization": f"Bearer {test_key}"}
-        )
+        response = client.get("/routes", headers={"Authorization": f"Bearer {test_key}"})
 
     assert response.status_code == 200
 
@@ -65,10 +64,7 @@ def test_invalid_api_key_returns_401(client):
     mock_cursor.fetchone.return_value = None
 
     with patch("db.get_db_connection", return_value=mock_conn):
-        response = client.get(
-            "/routes",
-            headers={"Authorization": f"Bearer {test_key}"}
-        )
+        response = client.get("/routes", headers={"Authorization": f"Bearer {test_key}"})
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid API Key"

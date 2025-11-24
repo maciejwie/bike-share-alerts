@@ -1,8 +1,10 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 from fastapi.testclient import TestClient
+
+from auth import get_admin_user, get_current_user
 from index import app
-from auth import get_current_user, get_admin_user
 
 
 @pytest.fixture
