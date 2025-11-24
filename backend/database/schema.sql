@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS timescaledb;
 
 -- Stations Metadata (Relatively static)
 CREATE TABLE stations (
-    station_id TEXT PRIMARY KEY,
+    station_id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     lat DOUBLE PRECISION NOT NULL,
     lon DOUBLE PRECISION NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE stations (
 -- Station Status History (Hypertable)
 CREATE TABLE station_status (
     time TIMESTAMPTZ NOT NULL,
-    station_id TEXT NOT NULL,
+    station_id INTEGER NOT NULL,
     num_bikes_available INTEGER NOT NULL,
     num_ebikes_available INTEGER DEFAULT 0,
     num_docks_available INTEGER NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE station_status (
     is_renting BOOLEAN DEFAULT TRUE,
     is_returning BOOLEAN DEFAULT TRUE,
     CONSTRAINT fk_station
-        FOREIGN KEY(station_id) 
+        FOREIGN KEY(station_id)
         REFERENCES stations(station_id)
 );
 
@@ -52,11 +52,13 @@ CREATE TABLE routes (
     route_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_email TEXT NOT NULL REFERENCES users(user_email) ON DELETE CASCADE,
     name TEXT NOT NULL, -- e.g., "Commute to Work"
-    start_station_id TEXT REFERENCES stations(station_id),
-    end_station_id TEXT REFERENCES stations(station_id),
-    target_arrival_time TIME, -- e.g., '08:30'
+    start_station_ids INTEGER[], -- Ordered list of preferred start stations
+    end_station_ids INTEGER[], -- Ordered list of preferred end stations
+    target_departure_time TIME, -- e.g., '08:30'
     alert_lead_time_minutes INTEGER DEFAULT 15, -- Alert 15 mins before
     days_of_week INTEGER[], -- Array of days (0=Sun, 1=Mon, etc.)
+    bikes_threshold INTEGER NOT NULL DEFAULT 2, -- Alert if bikes < threshold
+    docks_threshold INTEGER NOT NULL DEFAULT 2, -- Alert if docks < threshold
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -66,7 +68,7 @@ CREATE INDEX idx_routes_active ON routes (is_active);
 
 -- Current Station Status (Snapshot for efficient deduplication)
 CREATE TABLE IF NOT EXISTS current_station_status (
-    station_id TEXT PRIMARY KEY,
+    station_id INTEGER PRIMARY KEY,
     num_bikes_available INTEGER NOT NULL,
     num_ebikes_available INTEGER DEFAULT 0,
     num_docks_available INTEGER NOT NULL,
