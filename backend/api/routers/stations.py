@@ -80,7 +80,7 @@ def get_all_stations_with_details(
 
 @router.get("/stations/{station_id}")
 def get_station_details(
-    station_id: str, user_email: str = Depends(get_current_user), conn=Depends(get_db)
+    station_id: int, user_email: str = Depends(get_current_user), conn=Depends(get_db)
 ):
     """
     Get detailed information for a specific station, including coordinates.
