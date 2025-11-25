@@ -7,3 +7,8 @@ crons = ["* * * * *"]  # Every minute
 
 [observability]
 enabled = true
+
+[vars]
+HEARTBEAT_URLS = '["https://bike-share-alerts-collector.vercel.app/api/collector", "https://bike-share-alerts-api.vercel.app/api/cron/heartbeat"]'
+
+

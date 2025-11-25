@@ -5,22 +5,46 @@ export default {
 
     async scheduled(event, env, ctx) {
         try {
-            const response = await fetch('https://bike-share-alerts-collector.vercel.app/api/collector', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${env.CRON_SECRET}`
-                }
-            });
-
-            if (!response.ok) {
-                console.error(`Collector returned ${response.status}: ${await response.text()}`);
+            let urls = [];
+            try {
+                urls = JSON.parse(env.HEARTBEAT_URLS || '[]');
+            } catch (e) {
+                console.error(`Failed to parse HEARTBEAT_URLS: ${e.message}`);
                 return;
             }
 
-            const responseText = await response.text();
-            console.log(`Collector response: ${responseText}`);
+            if (!urls.length) {
+                console.log('No HEARTBEAT_URLS configured.');
+                return;
+            }
+
+            console.log(`Triggering heartbeats for ${urls.length} services...`);
+
+            const results = await Promise.allSettled(urls.map(url =>
+                fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${env.CRON_SECRET}`
+                    }
+                })
+            ));
+
+            results.forEach((result, index) => {
+                const url = urls[index];
+                if (result.status === 'fulfilled') {
+                    const response = result.value;
+                    if (response.ok) {
+                        console.log(`[SUCCESS] ${url}: ${response.status}`);
+                    } else {
+                        console.error(`[FAILURE] ${url}: ${response.status} - ${response.statusText}`);
+                    }
+                } else {
+                    console.error(`[ERROR] ${url}: ${result.reason}`);
+                }
+            });
+
         } catch (error) {
-            console.error(`Error triggering collector: ${error.message}`);
+            console.error(`Error in scheduled task: ${error.message}`);
             console.error(`Stack: ${error.stack}`);
         }
     }
