@@ -132,3 +132,31 @@ def delete_route(route_id: str, user_email: str = Depends(get_current_user), con
 
     conn.commit()
     cur.close()
+
+
+@router.post("/routes/{route_id}/toggle")
+def toggle_route(route_id: str, user_email: str = Depends(get_current_user), conn=Depends(get_db)):
+    """Toggle the active status of a route"""
+    cur = conn.cursor()
+
+    # First get current status
+    cur.execute(
+        "SELECT is_active FROM routes WHERE route_id = %s AND user_email = %s",
+        (route_id, user_email),
+    )
+    row = cur.fetchone()
+
+    if not row:
+        cur.close()
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Route not found")
+
+    new_status = not row[0]
+
+    cur.execute("UPDATE routes SET is_active = %s WHERE route_id = %s", (new_status, route_id))
+
+    conn.commit()
+    cur.close()
+
+    return {"route_id": route_id, "active": new_status}
