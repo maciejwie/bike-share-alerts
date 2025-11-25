@@ -36,6 +36,48 @@ def get_stations(user_email: str = Depends(get_current_user), conn=Depends(get_d
     return {"stations": stations}
 
 
+@router.get("/stations/all")
+def get_all_stations_with_details(
+    user_email: str = Depends(get_current_user), conn=Depends(get_db)
+):
+    """
+    Get all stations with their names and coordinates for station picker UI.
+    """
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT s.station_id, s.name, s.lat, s.lon, s.capacity,
+               COALESCE(ss.num_bikes_available, 0) as bikes,
+               COALESCE(ss.num_ebikes_available, 0) as ebikes,
+               COALESCE(ss.num_docks_available, 0) as docks
+        FROM stations s
+        LEFT JOIN current_station_status ss ON s.station_id = ss.station_id
+        ORDER BY s.name
+        """
+    )
+
+    rows = cur.fetchall()
+    cur.close()
+
+    stations = []
+    for row in rows:
+        stations.append(
+            {
+                "id": row[0],
+                "name": row[1],
+                "lat": row[2],
+                "lon": row[3],
+                "capacity": row[4],
+                "bikes": row[5],
+                "ebikes": row[6],
+                "docks": row[7],
+            }
+        )
+
+    return {"stations": stations}
+
+
 @router.get("/stations/{station_id}")
 def get_station_details(
     station_id: str, user_email: str = Depends(get_current_user), conn=Depends(get_db)
