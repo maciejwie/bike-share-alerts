@@ -1,6 +1,7 @@
 def test_get_routes(client, mock_db, mock_auth):
     # Mock DB response
-    mock_db.fetchall.return_value = []
+    mock_cursor, _ = mock_db
+    mock_cursor.fetchall.return_value = []
 
     response = client.get("/routes")
     assert response.status_code == 200
@@ -10,7 +11,8 @@ def test_get_routes(client, mock_db, mock_auth):
 def test_create_route(client, mock_db, mock_auth):
     # First call checks for existing route (returns None)
     # Second call creates new route
-    mock_db.fetchone.side_effect = [None, [123]]
+    mock_cursor, _ = mock_db
+    mock_cursor.fetchone.side_effect = [None, [123]]
 
     response = client.post(
         "/routes",
@@ -28,7 +30,8 @@ def test_create_route(client, mock_db, mock_auth):
 
 def test_create_route_idempotent(client, mock_db, mock_auth):
     # Mock existing route found
-    mock_db.fetchone.return_value = [456]
+    mock_cursor, _ = mock_db
+    mock_cursor.fetchone.return_value = [456]
 
     response = client.post(
         "/routes",
@@ -85,14 +88,16 @@ def test_create_route_validation_invalid_days(client, mock_db, mock_auth):
 
 
 def test_delete_route(client, mock_db, mock_auth):
-    mock_db.rowcount = 1
+    mock_cursor, _ = mock_db
+    mock_cursor.rowcount = 1
 
     response = client.delete("/routes/some-uuid")
     assert response.status_code == 204
 
 
 def test_delete_route_not_found(client, mock_db, mock_auth):
-    mock_db.rowcount = 0
+    mock_cursor, _ = mock_db
+    mock_cursor.rowcount = 0
 
     response = client.delete("/routes/nonexistent-uuid")
     assert response.status_code == 404

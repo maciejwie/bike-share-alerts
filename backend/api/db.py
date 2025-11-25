@@ -1,28 +1,45 @@
 import os
 
-import psycopg2
+import psycopg2.pool
+
+# Global connection pool
+_pool = None
+
+
+def get_db_pool():
+    """
+    Returns the global database connection pool.
+    Initializes it if it doesn't exist.
+    """
+    global _pool
+    if _pool is None:
+        db_url = os.environ.get("DATABASE_URL")
+        if not db_url:
+            raise Exception("DATABASE_URL not set")
+
+        # Initialize the pool
+        # minconn=1, maxconn=5 (keep it small for serverless to avoid exhausting DB limits)
+        _pool = psycopg2.pool.ThreadedConnectionPool(1, 5, db_url)
+
+    return _pool
 
 
 def get_db_connection():
     """
-    Establishes a connection to the database.
-    This is a synchronous connection, suitable for use in FastAPI dependency with threadpool.
+    Gets a connection from the pool.
     """
-    db_url = os.environ.get("DATABASE_URL")
-    if not db_url:
-        raise Exception("DATABASE_URL not set")
-
-    conn = psycopg2.connect(db_url)
-    return conn
+    pool = get_db_pool()
+    return pool.getconn()
 
 
 def get_db():
     """
-    FastAPI dependency that yields a database connection.
-    Closes the connection after the request is finished.
+    FastAPI dependency that yields a database connection from the pool.
+    Returns the connection to the pool after the request is finished.
     """
-    conn = get_db_connection()
+    pool = get_db_pool()
+    conn = pool.getconn()
     try:
         yield conn
     finally:
-        conn.close()
+        pool.putconn(conn)

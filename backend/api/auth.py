@@ -64,3 +64,26 @@ def get_admin_user(credentials: HTTPAuthorizationCredentials = Depends(security)
             headers={"WWW-Authenticate": "Bearer"},
         )
     return True
+
+
+def verify_cron_secret(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """
+    Validates the CRON_SECRET from Cloudflare Worker.
+    """
+    token = credentials.credentials
+    cron_secret = os.environ.get("CRON_SECRET")
+
+    if not cron_secret:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Cron secret not configured",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not secrets.compare_digest(token, cron_secret):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid cron secret",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return True

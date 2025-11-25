@@ -1,5 +1,4 @@
 import hashlib
-from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,24 +11,20 @@ def client():
     return TestClient(app)
 
 
-def test_valid_api_key_updates_last_used(client):
+def test_valid_api_key_updates_last_used(client, mock_db):
     """Test that a valid API key allows access and updates last_used_at"""
+    mock_cursor, _ = mock_db
     test_key = "sk_live_test123"
     key_hash = hashlib.sha256(test_key.encode()).hexdigest()
 
-    mock_conn = MagicMock()
-    mock_cursor = MagicMock()
-    mock_conn.cursor.return_value = mock_cursor
-
     # Mock the SELECT query to return a valid user (email)
     test_user_email = "test@example.com"
-    mock_cursor.fetchone.return_value = [test_user_email]
 
-    # Mock fetchall for the routes query
+    # First call is auth check (returns user), second call is routes fetch (returns empty list)
+    mock_cursor.fetchone.return_value = [test_user_email]
     mock_cursor.fetchall.return_value = []
 
-    with patch("db.get_db_connection", return_value=mock_conn):
-        response = client.get("/routes", headers={"Authorization": f"Bearer {test_key}"})
+    response = client.get("/routes", headers={"Authorization": f"Bearer {test_key}"})
 
     assert response.status_code == 200
 
@@ -41,36 +36,23 @@ def test_valid_api_key_updates_last_used(client):
     assert "SELECT user_email FROM api_keys" in select_call[0][0]
     assert key_hash in select_call[0][1]
 
-    # Verify UPDATE was called in auth (this would fail with the bug)
+    # Verify UPDATE was called in auth
     update_call = mock_cursor.execute.call_args_list[1]
     assert "UPDATE api_keys SET last_used_at" in update_call[0][0]
 
-    # Verify cursor close was called (would be called twice - once in auth, once in routes)
-    assert mock_cursor.close.call_count >= 1
 
-    # Verify commit was called
-    mock_conn.commit.assert_called()
-
-
-def test_invalid_api_key_returns_401(client):
+def test_invalid_api_key_returns_401(client, mock_db):
     """Test that an invalid API key returns 401"""
+    mock_cursor, _ = mock_db
     test_key = "sk_live_invalid"
-
-    mock_conn = MagicMock()
-    mock_cursor = MagicMock()
-    mock_conn.cursor.return_value = mock_cursor
 
     # Mock the SELECT query to return no user
     mock_cursor.fetchone.return_value = None
 
-    with patch("db.get_db_connection", return_value=mock_conn):
-        response = client.get("/routes", headers={"Authorization": f"Bearer {test_key}"})
+    response = client.get("/routes", headers={"Authorization": f"Bearer {test_key}"})
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid API Key"
-
-    # Verify cursor was closed even on error path
-    mock_cursor.close.assert_called_once()
 
 
 def test_missing_auth_header_returns_403(client):

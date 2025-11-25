@@ -1,7 +1,9 @@
 def test_create_key(client, mock_db, mock_admin_auth):
+    """Should create new API key"""
+    mock_cursor, _ = mock_db
     # First call checks for existing key (returns None)
-    # Second call inserts new key
-    mock_db.fetchone.side_effect = [None, ["new_key_id"]]
+    # Second call inserts new key (returns ID)
+    mock_cursor.fetchone.side_effect = [None, ["new_key_id"]]
 
     response = client.post(
         "/admin/keys", json={"user_email": "test@example.com", "label": "Test Key"}
@@ -13,21 +15,26 @@ def test_create_key(client, mock_db, mock_admin_auth):
     assert data["key_id"] == "new_key_id"
     assert data["existed"] is False
 
-    # Verify that what was inserted was hashed
-    insert_call = mock_db.execute.call_args_list[1]  # Second call is the INSERT
+    # Verify INSERT
+    # First execute is SELECT (check existing), second is INSERT
+    insert_call = mock_cursor.execute.call_args_list[1]
     inserted_key = insert_call[0][1][1]
     assert inserted_key != data["key"]
     assert len(inserted_key) == 64
 
 
 def test_list_keys(client, mock_db, mock_admin_auth):
-    mock_db.fetchall.return_value = []
+    """Should list all API keys"""
+    mock_cursor, _ = mock_db
+    mock_cursor.fetchall.return_value = []
     response = client.get("/admin/keys")
     assert response.status_code == 200
     assert response.json() == {"keys": []}
 
 
 def test_revoke_key(client, mock_db, mock_admin_auth):
-    mock_db.rowcount = 1
+    """Should revoke API key"""
+    mock_cursor, _ = mock_db
+    mock_cursor.rowcount = 1
     response = client.delete("/admin/keys/some_id")
     assert response.status_code == 204

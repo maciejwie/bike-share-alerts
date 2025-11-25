@@ -59,6 +59,9 @@ const (
 	GBFSInfoURL   = "https://tor.publicbikesystem.net/ube/gbfs/v1/en/station_information.json"
 )
 
+// Global DB Pool for warm starts
+var dbPool *pgxpool.Pool
+
 // Handler is the entry point for Vercel Serverless Function
 func Handler(w http.ResponseWriter, r *http.Request) {
 	// 1. Security Check
@@ -75,31 +78,35 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load .env is not needed on Vercel as env vars are injected,
-	// but for local 'vercel dev' it might be needed if not using vercel env pull.
-	// We'll assume env vars are present.
+	// 2. Initialize DB Pool if needed
+	if dbPool == nil {
+		dbURL := os.Getenv("DATABASE_URL")
+		if dbURL == "" {
+			http.Error(w, "DATABASE_URL is not set", http.StatusInternalServerError)
+			return
+		}
 
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		http.Error(w, "DATABASE_URL is not set", http.StatusInternalServerError)
-		return
+		config, err := pgxpool.ParseConfig(dbURL)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Unable to parse DB URL: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// Configure pool settings for serverless
+		config.MaxConns = 5
+		config.MinConns = 0 // Allow scaling down to 0
+		config.MaxConnLifetime = 30 * time.Minute
+
+		pool, err := pgxpool.NewWithConfig(context.Background(), config)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Unable to connect to database: %v", err), http.StatusInternalServerError)
+			return
+		}
+		dbPool = pool
 	}
 
-	// Connect to DB (Create a new connection per invocation for simplicity,
-	// though global pool is better for warm starts. For Cron every 1m, this is fine)
-	config, err := pgxpool.ParseConfig(dbURL)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Unable to parse DB URL: %v", err), http.StatusInternalServerError)
-		return
-	}
-	pool, err := pgxpool.NewWithConfig(context.Background(), config)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Unable to connect to database: %v", err), http.StatusInternalServerError)
-		return
-	}
-	defer pool.Close()
-
-	if err := pollAndSave(context.Background(), pool); err != nil {
+	// 3. Execute Logic
+	if err := pollAndSave(context.Background(), dbPool); err != nil {
 		log.Printf("Error in poll: %v", err)
 		http.Error(w, fmt.Sprintf("Error: %v", err), http.StatusInternalServerError)
 		return
